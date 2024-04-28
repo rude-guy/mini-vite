@@ -9,6 +9,7 @@ import {
   resolvePlugins,
 } from '../pluginContainer';
 import { Plugin } from '../plugin';
+import { middlewareIndexHtml } from './middlewares/indexHtml';
 
 export interface ServerContext {
   root: string;
@@ -37,6 +38,8 @@ export async function startDevServer() {
       await plugin.configureServer(serverContext);
     }
   }
+
+  app.use(middlewareIndexHtml(serverContext));
 
   app.listen(3000, async () => {
     await optimizer(root);
