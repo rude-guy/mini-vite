@@ -15,7 +15,6 @@ export function resolvePlugin(): Plugin {
     },
     async resolveId(id, importer) {
       // 1. 绝对路径
-      debugger;
       if (path.isAbsolute(id)) {
         if (await fs.pathExists(id)) {
           return { id };

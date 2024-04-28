@@ -6,6 +6,9 @@ import {
   TransformResult,
 } from 'rollup';
 import { Plugin } from './plugin';
+import { resolvePlugin } from './plugins/resolve';
+import { esbuildTransformPlugin } from './plugins/esbuild';
+import { importAnalysisPlugin } from './plugins/importAnalysis';
 
 export interface PluginContainer {
   resolveId(id: string, importer?: string): Promise<PartialResolvedId | null>;
@@ -14,8 +17,7 @@ export interface PluginContainer {
 }
 
 export function resolvePlugins(): Plugin[] {
-  // TODO: 插件逻辑
-  return [];
+  return [resolvePlugin(), esbuildTransformPlugin(), importAnalysisPlugin()];
 }
 
 // 模拟 Rollup 的插件机制
