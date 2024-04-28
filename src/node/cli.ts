@@ -1,4 +1,5 @@
 import cac from 'cac';
+import { startDevServer } from './server';
 
 const cli = cac();
 
@@ -6,8 +7,8 @@ cli
   .command('[root]', 'Run the development server')
   .alias('serve')
   .alias('dev')
-  .action((args) => {
-    console.log('cli 启动');
+  .action(async () => {
+    await startDevServer();
   });
 
 cli.parse();
