@@ -13,7 +13,7 @@ export function cssPlugin(): Plugin {
       if (id.endsWith('.css')) {
         // 包装成js模块
         const jsContent = `
-          const css = '${code.replace(/\n/g, '')}';
+          const css = \`${code.replace(/\n/g, '')}\`;
           const style = document.createElement('style');
           style.setAttribute('type', 'text/css');
           style.innerHTML = css;

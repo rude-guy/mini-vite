@@ -10,6 +10,7 @@ import { resolvePlugin } from './plugins/resolve';
 import { esbuildTransformPlugin } from './plugins/esbuild';
 import { importAnalysisPlugin } from './plugins/importAnalysis';
 import { cssPlugin } from './plugins/css';
+import { assetPlugin } from './plugins/assets';
 
 export interface PluginContainer {
   resolveId(id: string, importer?: string): Promise<PartialResolvedId | null>;
@@ -23,6 +24,7 @@ export function resolvePlugins(): Plugin[] {
     esbuildTransformPlugin(),
     importAnalysisPlugin(),
     cssPlugin(),
+    assetPlugin(),
   ];
 }
 

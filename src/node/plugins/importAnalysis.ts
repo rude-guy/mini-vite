@@ -30,6 +30,13 @@ export function importAnalysisPlugin(): Plugin {
         if (!modSource) {
           return null;
         }
+        // 处理静态资源
+        if (modSource.endsWith('.svg')) {
+          // 加上import后缀
+          const resolveUrl = path.join(path.dirname(id), modSource);
+          ms.overwrite(modStart, modEnd, `${resolveUrl}?import`);
+          continue;
+        }
         // 第三方库: 路径重写到预构建产物的路径 bare import
         if (BARE_IMPORT_RE.test(modSource)) {
           const bundlePath = normalizePath(
