@@ -71,7 +71,7 @@ export class ModuleGraph {
   }
 
   // HMR 触发时会执行这个函数
-  invalidateModule(file: string) {
+  async invalidateModule(file: string) {
     const mod = this.idToModuleMap.get(file);
     if (mod) {
       // 更新时间戳

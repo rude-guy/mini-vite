@@ -2,6 +2,7 @@
 import connect from 'connect';
 //用来在命令行显示不同颜色文本的工具
 import { blue, green } from 'picocolors';
+import chokidar, { FSWatcher } from 'chokidar';
 import { optimizer } from '../optimizer';
 import {
   PluginContainer,
@@ -13,6 +14,8 @@ import { middlewareIndexHtml } from './middlewares/indexHtml';
 import { transformMiddleware } from './middlewares/transform';
 import { staticMiddleware } from './middlewares/static';
 import { ModuleGraph } from '../moduleGraph';
+import { createWebSocketServer } from '../ws';
+import { bindingHMREvents } from '../hmr';
 
 export interface ServerContext {
   root: string;
@@ -20,6 +23,8 @@ export interface ServerContext {
   app: connect.Server;
   plugins: Plugin[];
   moduleGraph: ModuleGraph;
+  ws: { send: (msg: any) => void; close: () => void };
+  watcher: FSWatcher;
 }
 
 export async function startDevServer() {
@@ -30,13 +35,25 @@ export async function startDevServer() {
   const pluginContainer = createPluginContainer(plugins);
   const moduleGraph = new ModuleGraph((url) => pluginContainer.resolveId(url));
 
+  // 文件监听
+  const watcher = chokidar.watch(root, {
+    ignored: ['**/node_modules/**', '**/.git/**'],
+    ignoreInitial: true,
+  });
+  // webSocket
+  const ws = createWebSocketServer(app);
+
   const serverContext: ServerContext = {
     root,
     pluginContainer,
     app,
     plugins,
     moduleGraph,
+    ws,
+    watcher,
   };
+
+  bindingHMREvents(serverContext);
 
   // 执行configureServer钩子
   for (const plugin of plugins) {
