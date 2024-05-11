@@ -88,6 +88,6 @@ export class ModuleGraph {
   ): Promise<{ url: string; resolvedId: string }> {
     const resolved = await this.resolveId(url);
     const resolvedId = resolved?.id || url;
-    return { url: resolvedId, resolvedId };
+    return { url, resolvedId };
   }
 }

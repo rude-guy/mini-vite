@@ -16,7 +16,7 @@ export function bindingHMREvents(serverContext: ServerContext) {
         {
           type: 'js-update',
           timestamp: Date.now(),
-          path: '/' + getShortName(root, file),
+          path: '/' + getShortName(file, root),
           acceptedPath: '/' + getShortName(file, root),
         },
       ],

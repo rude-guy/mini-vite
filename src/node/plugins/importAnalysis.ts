@@ -1,7 +1,17 @@
-import { BARE_IMPORT_RE, PRE_BUNDLE_DIR } from '../constants';
+import {
+  BARE_IMPORT_RE,
+  CLIENT_PUBLIC_PATH,
+  PRE_BUNDLE_DIR,
+} from '../constants';
 import { Plugin } from '../plugin';
 import { ServerContext } from '../server';
-import { isJSRequest, normalizePath } from '../util';
+import {
+  cleanUrl,
+  getShortName,
+  isInternalRequest,
+  isJSRequest,
+  normalizePath,
+} from '../util';
 import { init, parse } from 'es-module-lexer';
 import MagicString from 'magic-string';
 import path from 'path';
@@ -15,13 +25,31 @@ export function importAnalysisPlugin(): Plugin {
     },
     async transform(code, id) {
       // 只处理js请求
-      if (!isJSRequest(id)) {
+      if (!isJSRequest(id) || isInternalRequest(id)) {
         return null;
       }
       await init;
       // 解析import语句
       const [imports] = parse(code);
       const ms = new MagicString(code);
+
+      // HMR 更新的文件
+      const resolve = async (id: string, importer: string) => {
+        // @ts-ignore 直接调用插件上下文的 resolve 方法，会自动经过路径解析插件的处理
+        const resolved = await this.resolve(id, normalizePath(importer));
+        if (!resolved) {
+          return;
+        }
+        const cleanedId = cleanUrl(resolved.id);
+        const mod = moduleGraph.getModuleById(cleanedId);
+        let resolvedId = `/${getShortName(resolved.id, serverContext.root)}`;
+        if (mod && mod.lastHMRTimestamp > 0) {
+          resolvedId = `${resolvedId}?t=${mod.lastHMRTimestamp}`;
+        }
+        return resolvedId;
+      };
+
+      // 生成模块之间的依赖关系
       const { moduleGraph } = serverContext;
       const curMod = moduleGraph.getModuleById(id)!;
       const importedModules = new Set<string>();
@@ -31,8 +59,8 @@ export function importAnalysisPlugin(): Plugin {
         // 举例说明: const str = `import React from 'react'`
         // str.slice(s, e) => 'react'
         const { s: modStart, e: modEnd, n: modSource } = importInfo;
-        if (!modSource) {
-          return null;
+        if (!modSource || isInternalRequest(modSource)) {
+          continue;
         }
         // 处理静态资源
         if (modSource.endsWith('.svg')) {
@@ -49,13 +77,20 @@ export function importAnalysisPlugin(): Plugin {
           ms.overwrite(modStart, modEnd, bundlePath);
           importedModules.add(bundlePath);
         } else if (modSource.startsWith('.' || modSource.startsWith('/'))) {
-          // @ts-ignore 直接调用插件上下文的 resolve 方法，会自动经过路径解析插件的处理
-          const resolved = await this.resolve(modSource, id);
+          const resolved = await resolve(modSource, id);
           if (resolved) {
-            ms.overwrite(modStart, modEnd, resolved.id);
-            importedModules.add(resolved.id);
+            ms.overwrite(modStart, modEnd, resolved);
+            importedModules.add(resolved);
           }
         }
+      }
+      // 只针对业务代码注入
+      if (!id.includes('node_modules')) {
+        // 注入 HMR 相关的工具函数
+        ms.prepend(
+          `import { createHotContext as __vite__createHotContext } from "${CLIENT_PUBLIC_PATH}";` +
+            `import.meta.hot = __vite__createHotContext(${JSON.stringify(cleanUrl(curMod.url))});`
+        );
       }
       moduleGraph.updateModuleInfo(curMod, importedModules);
       return {

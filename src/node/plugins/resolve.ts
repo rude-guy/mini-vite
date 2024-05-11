@@ -2,7 +2,12 @@ import { Plugin } from '../plugin';
 import { ServerContext } from '../server';
 import path from 'path';
 import fs from 'fs-extra';
-import { normalizePath } from '../util';
+import {
+  cleanUrl,
+  isInternalRequest,
+  normalizePath,
+  removeImportQuery,
+} from '../util';
 import resolve from 'resolve';
 import { DEFAULT_EXTERSIONS } from '../constants';
 
@@ -14,6 +19,10 @@ export function resolvePlugin(): Plugin {
       serverContext = s;
     },
     async resolveId(id, importer) {
+      id = removeImportQuery(cleanUrl(id));
+      if (isInternalRequest(id)) {
+        return null;
+      }
       // 1. 绝对路径
       if (path.isAbsolute(id)) {
         if (await fs.pathExists(id)) {
